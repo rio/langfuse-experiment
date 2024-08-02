@@ -1,0 +1,15 @@
+#!/bin/bash
+
+set -euxo pipefail
+
+if ! k3d cluster get k3s-default --no-headers; then
+  k3d cluster create --port '80:80@loadbalancer' -p '443:443@loadbalancer' -p '3000:3000@loadbalancer'
+fi
+
+kubectl wait --for condition=available -n kube-system deployment/coredns --timeout 300s
+
+helm repo add langfuse https://langfuse.github.io/langfuse-k8s
+helm repo update
+
+helm upgrade --namespace langfuse --create-namespace --install langfuse langfuse/langfuse
+kubectl wait --for condition=available -n langfuse deployment/langfuse --timeout 300s
